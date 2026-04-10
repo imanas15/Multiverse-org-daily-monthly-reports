@@ -1,0 +1,6 @@
+pymongo
+gspread
+psycopg2-binary
+pandas
+numpy
+dotenv
