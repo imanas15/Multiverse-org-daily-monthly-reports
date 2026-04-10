@@ -7,6 +7,7 @@ import pandas as pd
 import os
 from oauth2client.service_account import ServiceAccountCredentials
 from dotenv import load_dotenv
+from send_email import send_mail
 
 load_dotenv(override=True)
 BASE_DIR = os.path.abspath(os.curdir)
@@ -19,6 +20,9 @@ TXN_COL = "transactions"
 
 SHEET_NAME = "Testing Monthly Report"
 WORKSHEET_NAME = "Monthly Report"
+
+EMAIL_SENDER = os.environ.get("EMAIL_SENDER") #"manas.barnwal@kazam.in"
+EMAIL_PASSWORD = os.environ.get("EMAIL_PASSWORD")
 
 # IST = pytz.timezone("Asia/Kolkata")
 # now = datetime.now()
@@ -190,6 +194,26 @@ def run_job():
 
     # Append data
     sheet.append_rows(final_df.values.tolist(), value_input_option="USER_ENTERED")
+
+    send_mail(
+        subject="Monthly Org Wise Transactions Report Mailer",
+        body = f"""
+Hello Team,
+
+The monthly org wise "transaction count", "Total Usage", "Total Unique Drivers"	and "Vehicle Count" report has successfully completed.
+
+Updated Google Sreadsheet: {SHEET_NAME} and Sheet Name: {WORKSHEET_NAME}
+Month: {month}
+
+All the latest data for the month: {month} is now appended in the Google Sheet :- https://docs.google.com/spreadsheets/d/1aRElH0Sndyow6QAl2jlcQ-oMFmdoqAH0cljfhJFeCuM/edit?gid=0#gid=0.
+
+This mail is automatically generated. For any queries, feel free to reply.
+
+Thanks and Regards,
+Manas Barnwal
+Data Science Engineer
++91 7054418401
+    """ , gmail_user=EMAIL_SENDER, gmail_pass=EMAIL_PASSWORD)
 
     print("✅ Data appended successfully")
 
