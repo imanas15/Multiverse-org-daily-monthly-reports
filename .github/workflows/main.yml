@@ -26,5 +26,7 @@ jobs:
       - name: Run monthly_comulative_report.py
         env:
           MONGO_URI: ${{ secrets.MONGO_URI }}
+          EMAIL_SENDER: ${{ secrets.EMAIL_SENDER }}
+          EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
         run: |
           python monthly_comulative_report.py
