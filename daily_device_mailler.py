@@ -10,6 +10,7 @@ import os
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from dotenv import load_dotenv
+from send_email import send_mail
 
 load_dotenv(override=True)
 BASE_DIR = os.path.abspath(os.curdir)
@@ -20,8 +21,7 @@ DB_NAME = "kazam-platform"
 COLLECTION_NAME = "device_uptime_daily_agg_new"
 
 EMAIL_SENDER = os.environ.get("EMAIL_SENDER") #"manas.barnwal@kazam.in"
-EMAIL_PASSWORD = os.environ.get("EMAIL_PASSWORD")   # ⚠️ Use Gmail App Password
-EMAIL_RECEIVER = os.environ.get("EMAIL_RECEIVER")
+EMAIL_PASSWORD = os.environ.get("EMAIL_PASSWORD")
 
 IST = pytz.timezone("Asia/Kolkata")
 
@@ -174,6 +174,26 @@ def main():
         sheet.append_rows(result_df.values.tolist(), value_input_option="USER_ENTERED")
 
         print("✅ Data appended successfully")
+
+        send_mail(
+        subject="Daily Org Wise Device Uptime Mailer",
+        body = f"""
+Hello Team,
+
+The daily Org wise Device Uptime report has successfully completed.
+
+Updated Google Sreadsheet: {SHEET_NAME} and Sheet Name: {WORKSHEET_NAME}
+Date: {datetime.now().strftime('%A, %d %B %Y')}
+
+All the latest data for date: {datetime.now().strftime('%A, %d %B %Y')} is now available in the Google Sheet :- https://docs.google.com/spreadsheets/d/1aRElH0Sndyow6QAl2jlcQ-oMFmdoqAH0cljfhJFeCuM/edit?gid=0#gid=0.
+
+This mail is automatically generated. For any queries, feel free to reply.
+
+Thanks and Regards,
+Manas Barnwal
+Data Science Engineer
++91 7054418401
+    """ , gmail_user=EMAIL_SENDER, gmail_pass=EMAIL_PASSWORD)
     else:
         print("No data to append")
 
