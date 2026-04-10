@@ -1,0 +1,30 @@
+
+name: Run Kazam Monthly Comulative Rreport
+
+on:
+  schedule:
+    - cron: "30 1 * * *"   # 8:00 AM IST (02:30 UTC)
+  workflow_dispatch:       # Manual trigger
+
+jobs:
+  run-main:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+
+      - name: Run monthly_comulative_report.py
+        env:
+          MONGO_URI: ${{ secrets.MONGO_URI }}
+        run: |
+          python monthly_comulative_report.py
