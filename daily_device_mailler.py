@@ -22,7 +22,7 @@ COLLECTION_NAME = "device_uptime_daily_agg_new"
 EMAIL_SENDER = os.environ.get("EMAIL_SENDER")
 EMAIL_PASSWORD = os.environ.get("EMAIL_PASSWORD")
 
-UTC = pytz.utc
+IST = pytz.timezone("Asia/Kolkata")
 
 # ------------------ MONGO SETUP ------------------
 client = MongoClient(MONGO_URI)
@@ -49,12 +49,9 @@ def connect_sheet():
 
 # ------------------ TIME RANGE ------------------
 def get_epoch_range():
-    now = datetime.datetime.now(UTC)
+    now = datetime.datetime.now(IST)
 
-    # Today 00:00 UTC
     today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
-
-    # Yesterday 00:00 UTC
     yesterday_start = today_start - datetime.timedelta(days=1)
 
     from_epoch = int(yesterday_start.timestamp())
