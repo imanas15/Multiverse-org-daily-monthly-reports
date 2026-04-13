@@ -15,6 +15,7 @@ load_dotenv(override=True)
 
 # ------------------ CONFIG ------------------
 MONGO_URI = os.environ.get("MONGO_URI")
+print("MONGO_URI:", MONGO_URI)
 DB_NAME = "kazam-platform"
 COLLECTION_NAME = "device_uptime_daily_agg_new"
 
@@ -121,6 +122,7 @@ def run_pipeline():
     result = list(collection.aggregate(pipeline))
 
     if result:
+        print("Length of data: ", len(result))
         df = pd.DataFrame(result)
         df.sort_values(by=['org'], inplace=True, ignore_index=True,
                        ascending=True, key=lambda x: x.str.lower())
