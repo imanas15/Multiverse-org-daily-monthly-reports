@@ -28,5 +28,6 @@ jobs:
           MONGO_URI: ${{ secrets.MONGO_URI }}
           EMAIL_SENDER: ${{ secrets.EMAIL_SENDER }}
           EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
+          GOOGLE_CREDS: ${{ secrets.GOOGLE_CREDS }}
         run: |
           python daily_device_mailler.py
