@@ -33,15 +33,20 @@ SHEET_NAME = "Testing Monthly Report"
 WORKSHEET_NAME = "Daily Report"
 
 # ------------------ GOOGLE SHEETS SETUP ------------------
+import json
+
 def connect_sheet():
     scope = [
         "https://spreadsheets.google.com/feeds",
         "https://www.googleapis.com/auth/drive"
     ]
 
-    creds = ServiceAccountCredentials.from_json_keyfile_name(
-        "agent-Gdocs-loader.json", scope
+    creds_dict = json.loads(os.environ["GOOGLE_CREDS"])
+
+    creds = ServiceAccountCredentials.from_json_keyfile_dict(
+        creds_dict, scope
     )
+
     client = gspread.authorize(creds)
 
     sheet = client.open(SHEET_NAME).worksheet(WORKSHEET_NAME)
