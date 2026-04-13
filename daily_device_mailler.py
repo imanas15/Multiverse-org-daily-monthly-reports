@@ -148,6 +148,9 @@ def main():
             ["date", "month", "org", "output_type", "active_devices"]
         ]
 
+        # ✅ FIX: remove NaN
+        result_df = result_df.fillna(0)
+
         # Append header if empty
         if not sheet.row_values(1):
             sheet.append_row(result_df.columns.tolist())
