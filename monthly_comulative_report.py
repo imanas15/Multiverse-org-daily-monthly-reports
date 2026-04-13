@@ -27,13 +27,20 @@ EMAIL_PASSWORD = os.environ.get("EMAIL_PASSWORD")
 now = datetime.datetime.now()
 
 # ------------------ GOOGLE SHEETS SETUP ------------------
-def connect_sheet():
-    scope = ["https://spreadsheets.google.com/feeds",
-             "https://www.googleapis.com/auth/drive"]
+import json
 
-    creds = ServiceAccountCredentials.from_json_keyfile_name(
-        "agent-Gdocs-loader.json", scope
+def connect_sheet():
+    scope = [
+        "https://spreadsheets.google.com/feeds",
+        "https://www.googleapis.com/auth/drive"
+    ]
+
+    creds_dict = json.loads(os.environ["GOOGLE_CREDS"])
+
+    creds = ServiceAccountCredentials.from_json_keyfile_dict(
+        creds_dict, scope
     )
+
     client = gspread.authorize(creds)
 
     sheet = client.open(SHEET_NAME).worksheet(WORKSHEET_NAME)
@@ -168,6 +175,9 @@ def run_job():
         ["month", "org", "txn_count", "total_usage_kwh",
          "total_unique_drivers", "vehicle_count"]
     ]
+
+    # ✅ FIX: remove NaN
+    final_df = final_df.fillna(0)
 
     if not sheet.row_values(1):
         sheet.append_row(final_df.columns.tolist())
