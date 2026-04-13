@@ -1,5 +1,4 @@
 import pytz
-# from datetime import datetime, timedelta
 import datetime
 from pymongo import MongoClient
 import gspread
@@ -21,11 +20,10 @@ TXN_COL = "transactions"
 SHEET_NAME = "Testing Monthly Report"
 WORKSHEET_NAME = "Monthly Report"
 
-EMAIL_SENDER = os.environ.get("EMAIL_SENDER") #"manas.barnwal@kazam.in"
+EMAIL_SENDER = os.environ.get("EMAIL_SENDER")
 EMAIL_PASSWORD = os.environ.get("EMAIL_PASSWORD")
 
-# IST = pytz.timezone("Asia/Kolkata")
-# now = datetime.now()
+# ✅ Always use module-style
 now = datetime.datetime.now()
 
 # ------------------ GOOGLE SHEETS SETUP ------------------
@@ -34,7 +32,7 @@ def connect_sheet():
              "https://www.googleapis.com/auth/drive"]
 
     creds = ServiceAccountCredentials.from_json_keyfile_name(
-        "service_account.json", scope
+        "agent-Gdocs-loader.json", scope
     )
     client = gspread.authorize(creds)
 
@@ -44,30 +42,29 @@ def connect_sheet():
 
 # ------------------ TIME RANGE ------------------
 def get_epoch_range():
-    # ✅ First day of current month (00:00 IST)
-    start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    # ✅ Always use datetime.datetime
+    current_time = datetime.datetime.now()
+
+    start = current_time.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
 
     first_day_current = start.replace(day=1)
     previous_month = first_day_current - datetime.timedelta(days=1)
 
-    # Format to name
     month_name = previous_month.strftime("%B")
 
-    # ✅ First day of next month (00:00 IST)
     if start.month == 12:
-        next_month = start.replace(year=now.year + 1, month=1, day=1,
-                                hour=0, minute=0, second=0, microsecond=0)
+        next_month = start.replace(year=current_time.year + 1, month=1, day=1,
+                                  hour=0, minute=0, second=0, microsecond=0)
     else:
         next_month = start.replace(month=start.month + 1, day=1,
-                                hour=0, minute=0, second=0, microsecond=0)
+                                  hour=0, minute=0, second=0, microsecond=0)
 
-    # 👉 Use next_month as END (exclusive)
     end = next_month
 
     return (
-        int(start.timestamp() * 1000),   # ms (vehicle)
+        int(start.timestamp() * 1000),
         int(end.timestamp() * 1000),
-        int(start.timestamp()),          # sec (txn)
+        int(start.timestamp()),
         int(end.timestamp()),
         str(month_name)
     )
@@ -83,66 +80,57 @@ def get_vehicle_count(from_ms, to_ms):
         {
             '$match': {
                 'timestamp': {
-                    '$gte': from_ms, 
+                    '$gte': from_ms,
                     '$lt': to_ms
                 }
             }
-        }, {
+        },
+        {
             '$group': {
-                '_id': '$org', 
-                'vehicle_count': {
-                    '$sum': 1
-                }
+                '_id': '$org',
+                'vehicle_count': {'$sum': 1}
             }
         }
     ]
 
     result = list(db[VEHICLE_COL].aggregate(pipeline))
     if result:
-        df = pd.DataFrame(result)
-        return df
+        return pd.DataFrame(result)
     return pd.DataFrame()
 
 
 def get_txn_data(from_sec, to_sec):
     print(f"Fetching transactions from {from_sec} to {to_sec}")
+
     pipeline = [
         {
             '$match': {
                 'start_time': {
-                    '$gte': from_sec, 
+                    '$gte': from_sec,
                     '$lt': to_sec
                 }
             }
-        }, {
+        },
+        {
             '$group': {
-                '_id': '$org', 
-                'txn_count': {
-                    '$sum': 1
-                }, 
+                '_id': '$org',
+                'txn_count': {'$sum': 1},
                 'total_usage': {
                     '$sum': {
                         '$ifNull': [
                             '$rectified_values.total_usage', '$total_usage'
                         ]
                     }
-                }, 
-                'total_users': {
-                    '$addToSet': '$user_id'
-                }
+                },
+                'total_users': {'$addToSet': '$user_id'}
             }
-        }, {
+        },
+        {
             '$project': {
-                '_id': 0, 
-                'org': '$_id', 
-                'total_usage_kwh': {
-                    '$divide': [
-                        '$total_usage', 1000
-                    ]
-                }, 
-                'total_unique_drivers': {
-                    '$size': '$total_users'
-                }, 
+                '_id': 0,
+                'org': '$_id',
+                'total_usage_kwh': {'$divide': ['$total_usage', 1000]},
+                'total_unique_drivers': {'$size': '$total_users'},
                 'txn_count': 1
             }
         }
@@ -151,69 +139,61 @@ def get_txn_data(from_sec, to_sec):
     result = list(db[TXN_COL].aggregate(pipeline))
     if result:
         df = pd.DataFrame(result)
-        df.sort_values(by=['org'], inplace=True, ignore_index=True, ascending=True, key=lambda x: x.str.lower())
+        df.sort_values(by=['org'], inplace=True, ignore_index=True,
+                       ascending=True, key=lambda x: x.str.lower())
         return df
     return pd.DataFrame()
+
 
 # ------------------ MAIN LOGIC ------------------
 def run_job():
     sheet = connect_sheet()
 
-    # Get today's data
     from_ms, to_ms, from_sec, to_sec, month = get_epoch_range()
 
     vehicle_count_today = get_vehicle_count(from_ms, to_ms)
     txn_data_today = get_txn_data(from_sec, to_sec)
 
-    final_df = pd.merge(txn_data_today, vehicle_count_today, left_on='org', right_on='_id', how='left').fillna("")
+    final_df = pd.merge(
+        txn_data_today,
+        vehicle_count_today,
+        left_on='org',
+        right_on='_id',
+        how='left'
+    ).fillna("")
+
     final_df['month'] = month
 
-    # # ------------------ CUMULATIVE ADD ------------------
-    # new_row = {
-    #     "month": month,
+    final_df = final_df[
+        ["month", "org", "txn_count", "total_usage_kwh",
+         "total_unique_drivers", "vehicle_count"]
+    ]
 
-    #     "vehicle_count":
-    #         last_row.get("vehicle_count", 0) + vehicle_count_today,
-
-    #     "txn_count":
-    #         last_row.get("txn_count", 0) + txn_data_today["txn_count"],
-
-    #     "total_usage":
-    #         last_row.get("total_usage", 0) + txn_data_today["total_usage"],
-
-    #     "total_unique_drivers":
-    #         last_row.get("total_unique_drivers", 0) + txn_data_today["total_unique_drivers"]
-    # }
-
-    # Append to sheet
-    final_df = final_df[["month", "org", "txn_count", "total_usage_kwh", "total_unique_drivers", "vehicle_count"]]
-
-    # Append header if sheet empty
     if not sheet.row_values(1):
         sheet.append_row(final_df.columns.tolist())
 
-    # Append data
     sheet.append_rows(final_df.values.tolist(), value_input_option="USER_ENTERED")
 
     send_mail(
         subject="Monthly Org Wise Transactions Report Mailer",
-        body = f"""
+        body=f"""
 Hello Team,
 
-The monthly org wise "transaction count", "Total Usage", "Total Unique Drivers"	and "Vehicle Count" report has successfully completed.
+The monthly org wise report has successfully completed.
 
-Updated Google Sreadsheet: {SHEET_NAME} and Sheet Name: {WORKSHEET_NAME}
+Updated Google Spreadsheet: {SHEET_NAME}
+Sheet Name: {WORKSHEET_NAME}
+
 Month: {month}
 
-All the latest data for the month: {month} is now appended in the Google Sheet :- https://docs.google.com/spreadsheets/d/1aRElH0Sndyow6QAl2jlcQ-oMFmdoqAH0cljfhJFeCuM/edit?gid=0#gid=0.
-
-This mail is automatically generated. For any queries, feel free to reply.
+This mail is automatically generated.
 
 Thanks and Regards,
 Manas Barnwal
-Data Science Engineer
-+91 7054418401
-    """ , gmail_user=EMAIL_SENDER, gmail_pass=EMAIL_PASSWORD)
+""",
+        gmail_user=EMAIL_SENDER,
+        gmail_pass=EMAIL_PASSWORD
+    )
 
     print("✅ Data appended successfully")
 
