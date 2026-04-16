@@ -84,14 +84,14 @@ db = client[DB_NAME]
 
 def get_vehicle_count(from_ms, to_ms):
     pipeline = [
-        {
-            '$match': {
-                'timestamp': {
-                    '$gte': from_ms,
-                    '$lt': to_ms
-                }
-            }
-        },
+        # {
+        #     '$match': {
+        #         'timestamp': {
+        #             '$gte': from_ms,
+        #             '$lt': to_ms
+        #         }
+        #     }
+        # },
         {
             '$group': {
                 '_id': '$org',
