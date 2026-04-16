@@ -92,9 +92,9 @@ def run_pipeline():
             '$match': {
                 'result.host_details.host_id': {
                     '$nin': ['null', None, '', ' ', 'undefined']
-                },
-                'result.output_type': {
-                    '$in': ['ac', 'dc']
+                # },
+                # 'result.output_type': {
+                #     '$in': ['ac', 'dc']
                 }
             }
         },
