@@ -84,44 +84,51 @@ db = client[DB_NAME]
 
 def get_vehicle_count():
     pipeline = [
-            {
-                '$group': {
-                    '_id': '$org', 
-                    'vehicle_count': {
-                        '$sum': 1
-                    }
-                }
-            }, {
-                '$lookup': {
-                    'from': 'drivers', 
-                    'let': {
-                        'org': '$_id'
-                    }, 
-                    'pipeline': [
-                        {
-                            '$match': {
-                                'org': {
-                                    '$ne': '', 
-                                    '$exists': True
-                                }, 
-                                '$expr': {
-                                    '$eq': [
-                                        '$org', '$$org'
-                                    ]
-                                }
-                            }
-                        }
-                    ], 
-                    'as': 'user_count'
-                }
-            }, {
-                '$addFields': {
-                    'user_count': {
-                        '$size': '$user_count'
-                    }
-                }
+    {
+        '$group': {
+            '_id': '$org', 
+            'vehicle_count': {
+                '$sum': 1
             }
-        ]
+        }
+    }, {
+        '$lookup': {
+            'from': 'drivers', 
+            'let': {
+                'org': '$_id'
+            }, 
+            'pipeline': [
+                {
+                    '$match': {
+                        'org': {
+                            '$ne': '', 
+                            '$exists': True
+                        }, 
+                        '$expr': {
+                            '$eq': [
+                                '$org', '$$org'
+                            ]
+                        }
+                    }
+                }, {
+                    '$group': {
+                        '_id': '$org', 
+                        'counts': {
+                            '$sum': 1
+                        }
+                    }
+                }
+            ], 
+            'as': 'user_count'
+        }
+    }, {
+        '$addFields': {
+            'user_count': {
+                '$first': '$user_count.counts'
+            }
+        }
+    }
+]
 
     result = list(db[VEHICLE_COL].aggregate(pipeline))
     if result:
