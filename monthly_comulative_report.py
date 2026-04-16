@@ -82,23 +82,46 @@ client = MongoClient(MONGO_URI)
 db = client[DB_NAME]
 
 
-def get_vehicle_count(from_ms, to_ms):
+def get_vehicle_count():
     pipeline = [
-        # {
-        #     '$match': {
-        #         'timestamp': {
-        #             '$gte': from_ms,
-        #             '$lt': to_ms
-        #         }
-        #     }
-        # },
-        {
-            '$group': {
-                '_id': '$org',
-                'vehicle_count': {'$sum': 1}
+            {
+                '$group': {
+                    '_id': '$org', 
+                    'vehicle_count': {
+                        '$sum': 1
+                    }
+                }
+            }, {
+                '$lookup': {
+                    'from': 'drivers', 
+                    'let': {
+                        'org': '$_id'
+                    }, 
+                    'pipeline': [
+                        {
+                            '$match': {
+                                'org': {
+                                    '$ne': '', 
+                                    '$exists': True
+                                }, 
+                                '$expr': {
+                                    '$eq': [
+                                        '$org', '$$org'
+                                    ]
+                                }
+                            }
+                        }
+                    ], 
+                    'as': 'user_count'
+                }
+            }, {
+                '$addFields': {
+                    'user_count': {
+                        '$size': '$user_count'
+                    }
+                }
             }
-        }
-    ]
+        ]
 
     result = list(db[VEHICLE_COL].aggregate(pipeline))
     if result:
@@ -160,7 +183,7 @@ def run_job():
 
     from_ms, to_ms, from_sec, to_sec, month = get_epoch_range()
 
-    vehicle_count_today = get_vehicle_count(from_ms, to_ms)
+    vehicle_count_today = get_vehicle_count()
     txn_data_today = get_txn_data(from_sec, to_sec)
 
     final_df = pd.merge(
@@ -175,7 +198,7 @@ def run_job():
 
     final_df = final_df[
         ["month", "org", "txn_count", "total_usage_kwh",
-         "total_unique_drivers", "vehicle_count"]
+         "user_count", "vehicle_count"]
     ]
 
     # ✅ FIX: remove NaN
