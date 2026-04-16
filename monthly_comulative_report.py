@@ -128,8 +128,10 @@ def get_txn_data(from_sec, to_sec):
                             '$rectified_values.total_usage', '$total_usage'
                         ]
                     }
-                },
-                'total_users': {'$addToSet': '$user_id'}
+                # },
+                # 'total_users': {
+                #     '$addToSet': '$user_id'
+               }
             }
         },
         {
@@ -137,7 +139,7 @@ def get_txn_data(from_sec, to_sec):
                 '_id': 0,
                 'org': '$_id',
                 'total_usage_kwh': {'$divide': ['$total_usage', 1000]},
-                'total_unique_drivers': {'$size': '$total_users'},
+                # 'total_unique_drivers': {'$size': '$total_users'},
                 'txn_count': 1
             }
         }
