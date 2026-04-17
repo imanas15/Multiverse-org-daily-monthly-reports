@@ -10,7 +10,9 @@ def send_mail(subject, body, gmail_user, gmail_pass):
     recipients = [
         "manas.barnwal@kazam.in",
         "vishnu.vardhan@kazam.in",
-        "harshit.jain@kazam.in"
+        "harshit.jain@kazam.in",
+        "tejas.saxena@kazam.in,
+        "sukriti@kazam.in"
     ]
 
     if not gmail_user or not gmail_pass:
